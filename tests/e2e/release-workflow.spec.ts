@@ -3,20 +3,28 @@ import { expect, test } from "@playwright/test";
 const password = "Nynety-Local-2026!";
 
 async function signIn(page: import("@playwright/test").Page, email: string) {
+  page.on("pageerror", (error) => console.error("Browser page error:", error.message));
   await page.goto("/login");
   await page.getByLabel("Email address").fill(email);
   await page.getByLabel("Password").fill(password);
+  const authResponse = page.waitForResponse((response) => response.url().includes("/api/auth/sign-in/email"), { timeout: 10_000 });
   await page.getByRole("button", { name: "Continue" }).click();
+  const response = await authResponse;
+  expect(response.ok(), `Sign-in API returned ${response.status()}: ${await response.text()}`).toBeTruthy();
   await expect(page).toHaveURL(/\/$/);
 }
 
 test("registers a user account", async ({ page }) => {
+  page.on("pageerror", (error) => console.error("Browser page error:", error.message));
   const email = `artist-${Date.now()}@example.local`;
   await page.goto("/register");
   await page.getByLabel("Full name").fill("New Artist");
   await page.getByLabel("Email address").fill(email);
   await page.getByLabel("Password").fill("New-Artist-2026-Strong!");
+  const authResponse = page.waitForResponse((response) => response.url().includes("/api/auth/sign-up/email"), { timeout: 10_000 });
   await page.getByRole("button", { name: "Create account" }).click();
+  const response = await authResponse;
+  expect(response.ok(), `Sign-up API returned ${response.status()}: ${await response.text()}`).toBeTruthy();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { name: /Good morning, New/ })).toBeVisible();
 });
