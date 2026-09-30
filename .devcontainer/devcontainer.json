@@ -1,0 +1,17 @@
+{
+  "name": "NynetyDegrees preview",
+  "dockerComposeFile": "compose.yml",
+  "service": "workspace",
+  "workspaceFolder": "/workspaces/nynetydegrees-artist-portal",
+  "postCreateCommand": "npm ci && npm run db:generate",
+  "postStartCommand": "bash .devcontainer/start-codespaces.sh",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "NynetyDegrees preview",
+      "onAutoForward": "openBrowser",
+      "visibility": "private"
+    }
+  },
+  "remoteUser": "node"
+}

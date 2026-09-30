@@ -1,0 +1,263 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  MANAGER
+  ADMIN
+}
+
+enum ReleaseType {
+  SINGLE
+  EP
+  ALBUM
+}
+
+enum ReleaseStatus {
+  DRAFT
+  SUBMITTED
+  IN_REVIEW
+  CHANGES_REQUESTED
+  RESUBMITTED
+  APPROVED
+  READY_FOR_DISTRIBUTION
+  DISTRIBUTED
+  SCHEDULED
+  RELEASED
+  REJECTED
+}
+
+enum ContributorRole {
+  MUSIC
+  LYRICS
+  PRODUCER
+  MIXING
+  MASTERING
+  OTHER
+}
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  artists       Artist[]
+  releases      Release[] @relation("ReleaseOwner")
+  comments      ReleaseComment[]
+  statusEvents  ReleaseStatusHistory[]
+  auditLogs     AuditLog[]
+}
+
+model Account {
+  id                    String    @id @default(uuid()) @db.Uuid
+  accountId             String
+  providerId            String
+  userId                String    @db.Uuid
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  token     String   @unique
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Verification {
+  id         String   @id @default(uuid()) @db.Uuid
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  @@index([identifier])
+}
+
+model Artist {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  releases  ReleaseArtist[]
+  tracks    TrackArtist[]
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model Release {
+  id             String                 @id @default(uuid()) @db.Uuid
+  title          String
+  type           ReleaseType             @default(SINGLE)
+  status         ReleaseStatus           @default(DRAFT)
+  genre          String?
+  language       String?
+  explicit       Boolean                @default(false)
+  desiredDate    DateTime?
+  ownerId        String                 @db.Uuid
+  owner          User                   @relation("ReleaseOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  createdBy      String                 @db.Uuid
+  updatedBy      String?                @db.Uuid
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  deletedAt      DateTime?
+  artists        ReleaseArtist[]
+  tracks         Track[]
+  contributors   Contributor[]
+  artwork        Artwork?
+  audioFiles     AudioFile[]
+  comments       ReleaseComment[]
+  statusHistory  ReleaseStatusHistory[]
+  @@index([ownerId, status])
+  @@index([status, updatedAt])
+  @@index([desiredDate])
+  @@index([type])
+}
+
+model Track {
+  id          String        @id @default(uuid()) @db.Uuid
+  releaseId   String        @db.Uuid
+  release     Release       @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  title       String
+  trackNumber Int
+  genre       String?
+  language    String?
+  explicit    Boolean       @default(false)
+  isrc        String?
+  artists     TrackArtist[]
+  contributors Contributor[]
+  audioFile   AudioFile?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  @@unique([releaseId, trackNumber])
+  @@index([releaseId])
+}
+
+model ReleaseArtist {
+  releaseId String  @db.Uuid
+  artistId  String  @db.Uuid
+  role      String  @default("PRIMARY")
+  release   Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  artist    Artist  @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  @@id([releaseId, artistId, role])
+  @@index([artistId])
+}
+
+model TrackArtist {
+  trackId  String  @db.Uuid
+  artistId String  @db.Uuid
+  role     String  @default("PRIMARY")
+  track    Track   @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  artist   Artist  @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  @@id([trackId, artistId, role])
+  @@index([artistId])
+}
+
+model Contributor {
+  id        String           @id @default(uuid()) @db.Uuid
+  releaseId String           @db.Uuid
+  trackId   String?          @db.Uuid
+  name      String
+  role      ContributorRole
+  release   Release          @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  track     Track?           @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  createdAt DateTime         @default(now())
+  @@index([releaseId, role])
+  @@index([trackId])
+}
+
+model Artwork {
+  id           String   @id @default(uuid()) @db.Uuid
+  releaseId    String   @unique @db.Uuid
+  release      Release  @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  storageKey   String   @unique
+  originalName String
+  mimeType     String
+  sizeBytes    BigInt
+  createdAt    DateTime @default(now())
+}
+
+model AudioFile {
+  id           String   @id @default(uuid()) @db.Uuid
+  releaseId    String   @db.Uuid
+  trackId      String   @unique @db.Uuid
+  release      Release  @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  track        Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  storageKey   String   @unique
+  originalName String
+  mimeType     String
+  sizeBytes    BigInt
+  createdAt    DateTime @default(now())
+  @@index([releaseId])
+}
+
+model ReleaseComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  releaseId String   @db.Uuid
+  authorId  String   @db.Uuid
+  body      String
+  createdAt DateTime @default(now())
+  release   Release  @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  @@index([releaseId, createdAt])
+}
+
+model ReleaseStatusHistory {
+  id        String        @id @default(uuid()) @db.Uuid
+  releaseId String        @db.Uuid
+  actorId   String        @db.Uuid
+  fromStatus ReleaseStatus?
+  toStatus   ReleaseStatus
+  note      String?
+  createdAt DateTime      @default(now())
+  release   Release       @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  actor     User          @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  @@index([releaseId, createdAt])
+  @@index([toStatus, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+  @@index([actorId, createdAt])
+  @@index([entityType, entityId])
+  @@index([action, createdAt])
+}

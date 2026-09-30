@@ -1,0 +1,17 @@
+# Review host SSH ports and any existing firewall before applying this example.
+# Keep this as a separate table; do not flush tables managed by the OS/firewall tool.
+table inet nynety_filter {
+  chain input {
+    type filter hook input priority filter; policy drop;
+
+    iifname "lo" accept
+    ct state established,related accept
+    ct state invalid drop
+
+    # Replace 22 if SSH listens on a different port.
+    tcp dport 22 ct state new accept
+    tcp dport { 80, 443 } ct state new accept
+    ip protocol icmp accept
+    ip6 nexthdr ipv6-icmp accept
+  }
+}

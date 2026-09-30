@@ -1,0 +1,7 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { ArrowLeft, ArrowUpRight, UsersRound } from "lucide-react";
+import { getSession } from "@/server/http/session";
+import { prisma } from "@/server/db/client";
+
+export default async function ArtistsPage(){const session=await getSession();if(!session)redirect("/login");const artists=await prisma.artist.findMany({where:session.user.role==="USER"?{userId:session.user.id}:{},include:{_count:{select:{releases:true,tracks:true}}},orderBy:{name:"asc"}});return <main className="subpage"><header className="subpage-head"><Link href="/" className="wizard-back"><ArrowLeft size={14}/> Overview</Link></header><div className="subpage-content"><div className="section-kicker">YOUR COLLABORATORS</div><h1>Artists</h1><p className="subpage-intro">Artists associated with your release catalog.</p>{artists.length===0?<div className="empty-state"><UsersRound size={21}/><b>No artists added yet</b><span>Add your first artist when creating a release.</span><Link href="/releases/new" className="text-link">Create a release <ArrowUpRight size={13}/></Link></div>:<div className="artist-grid">{artists.map((artist,index)=><Link href="/releases" className="artist-card" key={artist.id}><span className={`artist-art cover-${["blue","sand","rose","green"][index%4]}`}>{artist.name.slice(0,1).toUpperCase()}</span><span><b>{artist.name}</b><small>{artist._count.releases} releases · {artist._count.tracks} tracks</small></span><ArrowUpRight size={14}/></Link>)}</div>}</div></main>}

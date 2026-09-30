@@ -1,0 +1,11 @@
+http://localhost {
+	encode zstd gzip
+	request_body {
+		max_size 260MB
+	}
+	log {
+		output file /var/log/caddy/access.log
+		format json
+	}
+	reverse_proxy app:3000
+}

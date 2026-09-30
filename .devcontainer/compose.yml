@@ -1,0 +1,34 @@
+services:
+  workspace:
+    image: mcr.microsoft.com/devcontainers/typescript-node:1-24-bookworm
+    command: sleep infinity
+    volumes:
+      - ..:/workspaces/nynetydegrees-artist-portal:cached
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://nynety:nynety_codespaces_only@postgres:5432/nynety?schema=public
+      STORAGE_PATH: /workspaces/nynetydegrees-artist-portal/storage/releases
+      MAX_AUDIO_FILE_SIZE_MB: 250
+      MAX_ARTWORK_FILE_SIZE_MB: 20
+      LOG_LEVEL: info
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17.6-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nynety
+      POSTGRES_USER: nynety
+      POSTGRES_PASSWORD: nynety_codespaces_only
+    volumes:
+      - codespaces_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nynety -d nynety"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  codespaces_postgres_data:

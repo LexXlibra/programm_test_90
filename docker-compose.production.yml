@@ -1,0 +1,30 @@
+services:
+  postgres:
+    environment:
+      POSTGRES_DB: nynety
+      POSTGRES_USER: nynety
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a strong POSTGRES_PASSWORD in .env}
+    ports: !reset []
+
+  app:
+    build:
+      target: runtime
+    command: ["sh", "-c", "npx prisma migrate deploy && node .next/standalone/server.js"]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://nynety:${POSTGRES_PASSWORD:?Set a strong POSTGRES_PASSWORD in .env}@postgres:5432/nynety?schema=public
+      APP_URL: https://${APP_DOMAIN:?Set APP_DOMAIN to your real domain}
+      BETTER_AUTH_URL: https://${APP_DOMAIN:?Set APP_DOMAIN to your real domain}
+
+  caddy:
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?Set APP_DOMAIN to your real domain}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile.production:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_logs:/var/log/caddy
