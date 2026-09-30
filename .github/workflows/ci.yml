@@ -42,4 +42,16 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npx prisma migrate deploy
+      - run: npm run db:seed
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Start production server
+        run: |
+          npm run start -- --hostname 127.0.0.1 > /tmp/nynety-start.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS http://localhost:3000/api/health >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/nynety-start.log
+          exit 1
+      - run: npm run test:e2e

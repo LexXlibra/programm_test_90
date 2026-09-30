@@ -44,21 +44,22 @@ test("creates, reviews, returns, resubmits and approves a release", async ({ pag
   await page.getByLabel("Genre").fill("Alternative pop");
   await page.getByRole("button", { name: "Continue" }).click();
   await page.getByRole("button", { name: "Submit for review" }).click();
-  await expect(page.getByText("Submitted", { exact: true })).toBeVisible();
+  await expect(page.locator("span.status").filter({ hasText: "Submitted" })).toBeVisible();
   const releaseUrl = page.url();
 
   const manager = await browser.newPage();
   await signIn(manager, "manager@example.local");
   await manager.goto(releaseUrl);
+  await manager.getByRole("button", { name: "Start review" }).click();
   await manager.getByPlaceholder("What should be updated?").fill("Please update the master file and confirm the artwork.");
   await manager.getByRole("button", { name: "Request changes" }).click();
-  await expect(manager.getByText("Changes requested", { exact: true })).toBeVisible();
+  await expect(manager.locator("span.status").filter({ hasText: "Changes requested" })).toBeVisible();
 
   await page.reload();
   await page.getByRole("button", { name: "Resubmit" }).click();
-  await expect(page.getByText("Resubmitted", { exact: true })).toBeVisible();
+  await expect(page.locator("span.status").filter({ hasText: "Resubmitted" })).toBeVisible();
   await manager.reload();
   await manager.getByRole("button", { name: "Approve" }).click();
-  await expect(manager.getByText("Approved", { exact: true })).toBeVisible();
+  await expect(manager.locator("span.status").filter({ hasText: "Approved" })).toBeVisible();
   await manager.close();
 });

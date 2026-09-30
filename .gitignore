@@ -43,3 +43,6 @@ next-env.d.ts
 /storage/
 /generated/prisma/
 /.playwright-cli/
+
+/test-results/
+/playwright-report/
