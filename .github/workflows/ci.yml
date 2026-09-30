@@ -29,7 +29,7 @@ jobs:
       APP_URL: http://localhost:3000
       BETTER_AUTH_URL: http://localhost:3000
       BETTER_AUTH_SECRET: ci-only-secret-not-for-deployment
-      STORAGE_PATH: ${{ runner.temp }}/nynety-test-storage
+      STORAGE_PATH: /tmp/nynety-test-storage
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
